@@ -121,8 +121,6 @@ int main() {
     char userInput;
 
     initializeGame();
-
-    //displayGame();
     
     while(!gameOver) {
         displayGame();
