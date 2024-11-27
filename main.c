@@ -156,7 +156,23 @@ void displayGame()
     {
         for (int j = 0; j < GRID_SIZE; j++)
         {
-            printf("%c ", grid[i][j]);
+            switch (grid[i][j])
+            {
+            case PLAYER:
+                printf("🦊 ");
+                break;
+            case COIN:
+                printf("🟡 ");
+                break;
+            case OBSTACLE:
+                printf("🔺 ");
+                break;
+            case EMPTY:
+                printf(" . ");
+                break;
+            default:
+                printf("%c ", grid[i][j]); // fallback for unexpected characters
+            }
         }
         printf("\n");
     }
