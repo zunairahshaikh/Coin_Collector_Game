@@ -58,13 +58,30 @@ Run the following commands one by one in the **Developer Command Prompt for VS**
    cl /utf-8 main.c
    ```
    This generates the `main.exe` executable file.
+   If you get an error like this:
+   ```bash
+   Microsoft (R) C/C++ Optimizing Compiler Version 19.42.34435 for x64
+   Copyright (C) Microsoft Corporation.  All rights reserved.
 
-2. Change the terminal code page to UTF-8 to support emojis:
+   main.c
+   Microsoft (R) Incremental Linker Version 14.42.34435.0
+   Copyright (C) Microsoft Corporation.  All rights reserved.
+
+   /out:main.exe
+   main.obj
+   main.obj : error LNK2019: unresolved external symbol __imp_mciSendStringA referenced in function startsound
+   main.exe : fatal error LNK1120: 1 unresolved externals
+   ```
+   Try compiling with the following command:
+   ```bash
+   cl /utf-8 main.c /link winmm.lib
+   ```
+3. Change the terminal code page to UTF-8 to support emojis:
    ```bash
    chcp 65001
    ```
 
-3. Run the game:
+4. Run the game:
    ```bash
    main.exe
    ```
