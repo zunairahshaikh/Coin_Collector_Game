@@ -1,14 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <conio.h>   //for _getch()
-#include <windows.h> //for Sleep()
+#include <conio.h>   // for _getch()
+#include <windows.h> // for Sleep()
 
 // Macros
-#define GRID_SIZE 10
-#define COINS_COUNT 3
-#define OBSTACLES_COUNT 4
-#define GAME_DURATION 30
+#define GRID_SIZE 20
+#define COINS_COUNT 10
+#define OBSTACLES_COUNT 14
+#define GAME_DURATION 45
 #define REFRESH_RATE 100 // rate in milliseconds
 
 // Game entities
@@ -18,67 +18,103 @@
 #define OBSTACLE 'X'
 
 // Global Variables
-// Game state
 char grid[GRID_SIZE][GRID_SIZE];
 int playerX = 0, playerY = 0;
 int score = 0;
 int lives = 3;
 int gameOver = 0;
 int highScore = 0;
+char highScoreHolder[50] = "Unknown"; // To store the name of the current high scorer
 time_t startTime;
+
+typedef struct {
+    char name[50];
+    int score;
+} User;
 
 const char *highScoreFile = "highscore.txt";
 
-// Functions
+// Function prototypes
 void clearScreen();
 void initializeGrid();
 int isPositionEmpty(int x, int y);
 void placeRandomItems(char item, int count);
-void initializeGame();
+void initializeGame(User *user);
 void displayGame();
 void handleCollision(int newX, int newY);
 void movePlayer(char direction);
-void saveHighScore();
+void saveHighScore(User user);
+char promptReplay(); // New function to ask if the user wants to replay the game
 
 // Main
 int main()
 {
-    char userInput;
+    char replay;
+    User currentUser;
 
-    initializeGame();
-
-    while (!gameOver)
+    do
     {
-        displayGame();
+        // Reset game variables
+        playerX = 0;
+        playerY = 0;
+        score = 0;
+        lives = 3;
+        gameOver = 0;
 
-        userInput = _getch();
+        // Ask the user for their name
+        printf("Enter your name: ");
+        fgets(currentUser.name, 50, stdin);
+        currentUser.name[strcspn(currentUser.name, "\n")] = '\0'; // Remove newline character
 
-        if (userInput == 'q')
-            break;
+        // Initialize and start the game
+        initializeGame(&currentUser);
+        char userInput;
 
-        movePlayer(userInput);
-
-        if (time(NULL) - startTime >= GAME_DURATION)
+        while (!gameOver)
         {
-            gameOver = 1;
+            displayGame();
+
+            userInput = _getch();
+
+            if (userInput == 'q')
+                break;
+
+            movePlayer(userInput);
+
+            if (time(NULL) - startTime >= GAME_DURATION)
+            {
+                gameOver = 1;
+            }
+
+            Sleep(REFRESH_RATE);
         }
 
-        Sleep(REFRESH_RATE);
-    }
+        clearScreen();
+        printf("\nGame Over!\nYour Score: %d\n", score);
 
-    clearScreen();
-    printf("\nGame Over!\nYour Score: %d\n", score);
-    if (score > highScore)
-    {
-        highScore = score;
-        saveHighScore();
-        printf("Congratulations! You reached a new high score! :)\n");
-    }
+        // Check for a new high score
+        if (score > highScore)
+        {
+            highScore = score;
+            printf("Congratulations %s! You have achieved a new high score!\n", currentUser.name);
+            saveHighScore(currentUser);
+        }
+        else
+        {
+            printf("High Score: %d by %s\n", highScore, highScoreHolder);
+        }
 
+        // Ask the user if they want to replay
+        replay = promptReplay();
+
+    } while (replay == 'Y' || replay == 'y');
+
+    printf("Thank you for playing! Goodbye!\n");
     return 0;
 }
 
 // Function Definitions
+
 void clearScreen()
 {
     system("cls"); // For Windows
@@ -114,7 +150,7 @@ void placeRandomItems(char item, int count)
     }
 }
 
-void initializeGame()
+void initializeGame(User *user)
 {
     srand(time(NULL));
     initializeGrid();
@@ -123,25 +159,29 @@ void initializeGame()
     placeRandomItems(OBSTACLE, OBSTACLES_COUNT);
     startTime = time(NULL);
 
+    // Load the high score from the file
     FILE *fptr = fopen(highScoreFile, "r");
     if (fptr != NULL)
     {
         fscanf(fptr, "%d", &highScore);
+        fgetc(fptr); // Read the newline character
+        fgets(highScoreHolder, 50, fptr);
+        highScoreHolder[strcspn(highScoreHolder, "\n")] = '\0'; // Remove newline character
         fclose(fptr);
     }
     else
     {
-        printf("High Score File not Found!");
+        printf("High Score File not Found!\n");
         return;
     }
 }
 
-void saveHighScore()
+void saveHighScore(User user)
 {
     FILE *fptr = fopen(highScoreFile, "w");
     if (fptr != NULL)
     {
-        fprintf(fptr, "%d", highScore);
+        fprintf(fptr, "%d\n%s", highScore, user.name);
         fclose(fptr);
     }
 }
@@ -239,6 +279,27 @@ void movePlayer(char direction)
             playerX = newX;
             playerY = newY;
             grid[playerY][playerX] = PLAYER;
+        }
+    }
+}
+
+char promptReplay()
+{
+    char choice;
+
+    while (1)
+    {
+        printf("Do you want to play again? (Y/N): ");
+        choice = _getch();
+        printf("%c\n", choice); // Display the choice
+
+        if (choice == 'Y' || choice == 'y' || choice == 'N' || choice == 'n')
+        {
+            return choice;
+        }
+        else
+        {
+            printf("Invalid input. Please enter Y for yes or N for no.\n");
         }
     }
 }
