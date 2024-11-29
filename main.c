@@ -44,7 +44,7 @@ void displayGame();
 void handleCollision(int newX, int newY);
 void movePlayer(char direction);
 void saveHighScore(User user);
-char promptReplay(); // New function to ask if the user wants to replay the game
+char promptReplay();
 
 // Main
 int main()
