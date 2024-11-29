@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <conio.h>   // for _getch()
-#include <windows.h> // for Sleep()
+#include <windows.h> // for Sleep() and mciSendString
 
 // Macros
 #define GRID_SIZE 20
@@ -141,7 +141,7 @@ int main()
 void startSound()
 {
     // Open and play the start sound asynchronously
-    mciSendString("open \"start-sound.mp3\" type mpegvideo alias startSound", NULL, 0, NULL);
+    mciSendString("open \"start-sound.mp3\" type mpegvideo alias startSound", NULL, 0, NULL); //mciSendString for playing sound, "open" to open sound file, specify "type", "alias" to tell code which name you'll use later on in the code
     mciSendString("play startSound", NULL, 0, NULL);
 }
 
