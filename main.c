@@ -181,7 +181,7 @@ void saveHighScore(User user)
     FILE *fptr = fopen(highScoreFile, "w");
     if (fptr != NULL)
     {
-        fprintf(fptr, "%d\n%s", highScore, user.name);
+        fprintf(fptr, "%d\t%s\n", highScore, user.name);
         fclose(fptr);
     }
 }
