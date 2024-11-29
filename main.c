@@ -2,13 +2,17 @@
 #include <stdlib.h>
 #include <time.h>
 #include <conio.h>   // for _getch()
-#include <windows.h> // for Sleep() and mciSendString
+#include <windows.h> // for Sleep()
 
 // Macros
 #define GRID_SIZE 20
 #define COINS_COUNT 10
-#define OBSTACLES_COUNT 14
-#define GAME_DURATION 45
+#define EASY_OBSTACLES 10
+#define MEDIUM_OBSTACLES 16
+#define HARD_OBSTACLES 22
+#define EASY_TIMER 45
+#define MEDIUM_TIMER 40
+#define HARD_TIMER 30
 #define REFRESH_RATE 100 // rate in milliseconds
 
 // Game entities
@@ -26,6 +30,14 @@ int gameOver = 0;
 int highScore = 0;
 char highScoreHolder[50] = "Unknown"; // To store the name of the current high scorer
 time_t startTime;
+int obstacleCount = EASY_OBSTACLES;
+int gameDuration;
+
+// file pointers
+const char *highScoreFileEasy = "highscore_easy.txt";
+const char *highScoreFileMedium = "highscore_medium.txt";
+const char *highScoreFileHard = "highscore_hard.txt";
+const char *currentHighScoreFile;
 
 typedef struct
 {
@@ -46,6 +58,7 @@ void handleCollision(int newX, int newY);
 void movePlayer(char direction);
 void saveHighScore(User user);
 char promptReplay();
+void selectDifficulty();
 
 // Sound functions
 void startSound();
@@ -74,10 +87,14 @@ int main()
         gameOver = 0;
 
         sound();
+
         // Ask the user for their name
         printf("Enter your name: ");
         fgets(currentUser.name, 50, stdin);
         currentUser.name[strcspn(currentUser.name, "\n")] = '\0'; // Remove newline character
+
+        // Select difficulty
+        selectDifficulty();
 
         // Initialize and start the game
         printf("Press Enter when You are Ready...");
@@ -96,7 +113,7 @@ int main()
 
             movePlayer(userInput);
 
-            if (time(NULL) - startTime >= GAME_DURATION)
+            if (time(NULL) - startTime >= gameDuration)
             {
                 gameOver = 1;
             }
@@ -141,7 +158,7 @@ int main()
 void startSound()
 {
     // Open and play the start sound asynchronously
-    mciSendString("open \"start-sound.mp3\" type mpegvideo alias startSound", NULL, 0, NULL); //mciSendString for playing sound, "open" to open sound file, specify "type", "alias" to tell code which name you'll use later on in the code
+    mciSendString("open \"start-sound.mp3\" type mpegvideo alias startSound", NULL, 0, NULL);
     mciSendString("play startSound", NULL, 0, NULL);
 }
 
@@ -239,6 +256,49 @@ void clearScreen()
     system("cls"); // For Windows
 }
 
+void selectDifficulty()
+{
+    char choice;
+
+    while (1)
+    {
+        printf("Select Difficulty Level:\n");
+        printf("E: Easy (Fewer obstacles, more time)\n");
+        printf("M: Medium (Default obstacles and time)\n");
+        printf("H: Hard (More obstacles, less time)\n");
+        choice = _getch();
+        printf("%c\n", choice);
+
+        if (choice == 'E' || choice == 'e')
+        {
+            obstacleCount = EASY_OBSTACLES;
+            gameDuration = EASY_TIMER;
+            currentHighScoreFile = highScoreFileEasy;
+            break;
+        }
+        else if (choice == 'M' || choice == 'm')
+        {
+            obstacleCount = MEDIUM_OBSTACLES;
+            gameDuration = MEDIUM_TIMER;
+            currentHighScoreFile = highScoreFileMedium;
+            break;
+        }
+        else if (choice == 'H' || choice == 'h')
+        {
+            obstacleCount = HARD_OBSTACLES;
+            gameDuration = HARD_TIMER;
+            currentHighScoreFile = highScoreFileHard;
+            break;
+        }
+        else
+        {
+            printf("Invalid input. Please enter E for Easy, M for Medium, or H for Hard.\n");
+        }
+    }
+}
+
+
+
 void initializeGrid()
 {
     for (int i = 0; i < GRID_SIZE; i++)
@@ -275,11 +335,11 @@ void initializeGame(User *user)
     initializeGrid();
     grid[playerY][playerX] = PLAYER;
     placeRandomItems(COIN, COINS_COUNT);
-    placeRandomItems(OBSTACLE, OBSTACLES_COUNT);
+    placeRandomItems(OBSTACLE, obstacleCount);
     startTime = time(NULL);
 
-    // Load the high score from the file
-    FILE *fptr = fopen(highScoreFile, "r");
+    // Load the high score from the current file
+    FILE *fptr = fopen(currentHighScoreFile, "r");
     if (fptr != NULL)
     {
         fscanf(fptr, "%d", &highScore);
@@ -290,26 +350,32 @@ void initializeGame(User *user)
     }
     else
     {
-        printf("High Score File not Found!\n");
-        return;
+        printf("High Score File for this difficulty not found! Starting fresh.\n");
+        highScore = 0;
+        strcpy(highScoreHolder, "Unknown");
     }
 }
 
 void saveHighScore(User user)
 {
-    FILE *fptr = fopen(highScoreFile, "w");
+    FILE *fptr = fopen(currentHighScoreFile, "w");
     if (fptr != NULL)
     {
-        fprintf(fptr, "%d\n%s", highScore, user.name);
+        fprintf(fptr, "%d\t%s", highScore, user.name);
         fclose(fptr);
     }
+    else
+    {
+        printf("Error saving high score!\n");
+    }
 }
+
 
 void displayGame()
 {
     clearScreen();
     printf("Score: %d  Lives: %d  Time left: %d\n\n",
-           score, lives, GAME_DURATION - (int)(time(NULL) - startTime));
+           score, lives, gameDuration - (int)(time(NULL) - startTime));
 
     for (int i = 0; i < GRID_SIZE; i++)
     {
