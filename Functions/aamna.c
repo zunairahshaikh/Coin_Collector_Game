@@ -9,8 +9,7 @@ void initializeGrid()
     }
 }
 
-
-void initializeGame()
+void initializeGame(User *user)
 {
     srand(time(NULL));
     initializeGrid();
@@ -19,15 +18,19 @@ void initializeGame()
     placeRandomItems(OBSTACLE, OBSTACLES_COUNT);
     startTime = time(NULL);
 
+    // Load the high score from the file
     FILE *fptr = fopen(highScoreFile, "r");
     if (fptr != NULL)
     {
         fscanf(fptr, "%d", &highScore);
+        fgetc(fptr); // Read the newline character
+        fgets(highScoreHolder, 50, fptr);
+        highScoreHolder[strcspn(highScoreHolder, "\n")] = '\0'; // Remove newline character
         fclose(fptr);
     }
     else
     {
-        printf("High Score File not Found!");
+        printf("High Score File not Found!\n");
         return;
     }
 }
