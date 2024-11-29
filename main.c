@@ -27,7 +27,8 @@ int highScore = 0;
 char highScoreHolder[50] = "Unknown"; // To store the name of the current high scorer
 time_t startTime;
 
-typedef struct {
+typedef struct
+{
     char name[50];
     int score;
 } User;
@@ -46,6 +47,17 @@ void movePlayer(char direction);
 void saveHighScore(User user);
 char promptReplay();
 
+// Sound functions
+void startSound();
+void coinSound();
+void collisionSound();
+void endSound();
+void hsSound();
+void noHsSound();
+void sound();
+void byeSound();
+void cleanupSounds();
+
 // Main
 int main()
 {
@@ -61,19 +73,22 @@ int main()
         lives = 3;
         gameOver = 0;
 
+        sound();
         // Ask the user for their name
         printf("Enter your name: ");
         fgets(currentUser.name, 50, stdin);
         currentUser.name[strcspn(currentUser.name, "\n")] = '\0'; // Remove newline character
 
         // Initialize and start the game
-        initializeGame(&currentUser);
-        char userInput;
+        printf("Press Enter when You are Ready...");
+        startSound();
 
+        initializeGame(&currentUser);
+
+        char userInput;
         while (!gameOver)
         {
             displayGame();
-
             userInput = _getch();
 
             if (userInput == 'q')
@@ -90,27 +105,131 @@ int main()
         }
 
         clearScreen();
-        printf("\nGame Over!\nYour Score: %d\n", score);
+        printf("\nGame Over!");
+        endSound();
+        printf("\n\nYour Score: %d\n", score);
 
         // Check for a new high score
         if (score > highScore)
         {
             highScore = score;
+            hsSound();
             printf("Congratulations %s! You have achieved a new high score!\n", currentUser.name);
             saveHighScore(currentUser);
         }
         else
         {
-            printf("High Score: %d by %s\n", highScore, highScoreHolder);
+            noHsSound();
+            printf("You didn't beat the High Score: %d by %s\n", highScore, highScoreHolder);
         }
 
+        Sleep(2000);
         // Ask the user if they want to replay
+        printf("\n");
         replay = promptReplay();
 
     } while (replay == 'Y' || replay == 'y');
 
     printf("Thank you for playing! Goodbye!\n");
+    byeSound();
+    cleanupSounds();
     return 0;
+}
+
+// Sound Functions
+
+void startSound()
+{
+    // Open and play the start sound asynchronously
+    mciSendString("open \"start-sound.mp3\" type mpegvideo alias startSound", NULL, 0, NULL);
+    mciSendString("play startSound", NULL, 0, NULL);
+}
+
+void coinSound()
+{
+    // Close the alias if it was previously opened
+    mciSendString("close coin", NULL, 0, NULL);
+
+    // Open and play the coin sound
+    mciSendString("open \"coin-collect.mp3\" type mpegvideo alias coin", NULL, 0, NULL);
+    mciSendString("play coin", NULL, 0, NULL);
+}
+
+void collisionSound()
+{
+    // Close the alias if it was previously opened
+    mciSendString("close collision", NULL, 0, NULL);
+
+    // Open and play the collision sound
+    mciSendString("open \"ObstacleSound_oof.mp3\" type mpegvideo alias collision", NULL, 0, NULL);
+    mciSendString("play collision", NULL, 0, NULL);
+}
+
+void endSound()
+{
+    // Open the mp3 file
+    mciSendString("open \"game-over.mp3\" type mpegvideo alias endSound", NULL, 0, NULL);
+
+    // Play the mp3 file (non-blocking)
+    mciSendString("play endSound", NULL, 0, NULL);
+
+    // Wait for the audio to finish playing
+    Sleep(2400);
+
+    // Stop and close the mp3
+    mciSendString("stop endSound", NULL, 0, NULL);
+    mciSendString("close endSound", NULL, 0, NULL);
+}
+
+void hsSound()
+{
+    // Open the mp3 file
+    mciSendString("open \"hsSound.wav\" type mpegvideo alias myWAV", NULL, 0, NULL);
+
+    // Play the mp3 file (non-blocking)
+    mciSendString("play myWAV", NULL, 0, NULL);
+}
+
+void noHsSound()
+{
+    // Open the mp3 file
+    mciSendString("open \"mockingSound.mp3\" type mpegvideo alias hehe", NULL, 0, NULL);
+
+    // Play the mp3 file (non-blocking)
+    mciSendString("play hehe", NULL, 0, NULL);
+}
+
+void sound()
+{
+    // Open the mp3 file
+    mciSendString("open \"StartupSound.mp3\" type mpegvideo alias startup", NULL, 0, NULL);
+
+    // Play the mp3 file (non-blocking)
+    mciSendString("play startup", NULL, 0, NULL);
+}
+
+void byeSound()
+{
+    // Open the mp3 file with a unique alias
+    mciSendString("open \"byeSound.mp3\" type mpegvideo alias byeSound", NULL, 0, NULL);
+
+    mciSendString("play byeSound", NULL, 0, NULL);
+
+    Sleep(2605);
+
+    // Stop and close the mp3
+    mciSendString("stop byeSound", NULL, 0, NULL);
+    mciSendString("close byeSound", NULL, 0, NULL);
+}
+
+void cleanupSounds()
+{
+    mciSendString("close startSound", NULL, 0, NULL);
+    mciSendString("close coin", NULL, 0, NULL);
+    mciSendString("close collision", NULL, 0, NULL);
+    mciSendString("close myWAV", NULL, 0, NULL);
+    mciSendString("close hehe", NULL, 0, NULL);
+    mciSendString("close sound", NULL, 0, NULL);
 }
 
 // Function Definitions
@@ -181,10 +300,11 @@ void saveHighScore(User user)
     FILE *fptr = fopen(highScoreFile, "w");
     if (fptr != NULL)
     {
-        fprintf(fptr, "%d\t%s\n", highScore, user.name);
+        fprintf(fptr, "%d\n%s", highScore, user.name);
         fclose(fptr);
     }
 }
+
 void displayGame()
 {
     clearScreen();
@@ -218,17 +338,17 @@ void displayGame()
     printf("\nUse WASD to move, Q to quit\n");
 }
 
-
-
 void handleCollision(int newX, int newY)
 {
     if (grid[newY][newX] == COIN)
     {
+        coinSound();
         score += 10;
         placeRandomItems(COIN, 1);
     }
     else if (grid[newY][newX] == OBSTACLE)
     {
+        collisionSound();
         lives--;
         if (lives <= 0)
         {
@@ -273,6 +393,7 @@ void movePlayer(char direction)
 
     if (newX != playerX || newY != playerY)
     {
+
         handleCollision(newX, newY);
         if (!gameOver)
         {
@@ -292,7 +413,7 @@ char promptReplay()
     {
         printf("Do you want to play again? (Y/N): ");
         choice = _getch();
-        printf("%c\n", choice); // Display the choice
+        printf("%c\n", choice);
 
         if (choice == 'Y' || choice == 'y' || choice == 'N' || choice == 'n')
         {
